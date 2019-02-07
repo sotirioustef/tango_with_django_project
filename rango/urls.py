@@ -1,9 +1,8 @@
 from django.conf.urls import url
 from django.conf.urls import include
 from rango import views
-from about import urls
 
-#app_name = 'rango'
+# app_name = 'rango'
 urlpatterns = [
 	url(r'^$', views.index, name='index'),
 	url(r'^about/$', views.about, name='about'),
