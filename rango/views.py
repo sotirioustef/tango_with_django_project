@@ -73,3 +73,9 @@ def add_page(request, category_name_slug):
 	context_dict = {'form':form, 'category':category}
 
 	return render(request, 'rango/add_page.html', context_dict)
+
+def about(request):
+	#return HttpResponse("<a href='/rango/'> Rango says here is the About Page!</a>")
+	#<a href="/rango/">Index</a>
+	context_dict = {'bold': "This tutorial has been put together by Stefanos Sotiriou!"}
+	return render(request, 'rango/about.html', context=context_dict)
