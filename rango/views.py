@@ -4,6 +4,12 @@ from rango.models import Category
 from rango.models import Page
 from rango.forms import CategoryForm
 from rango.forms import PageForm
+from django import forms
+from django.contrib.auth.models import User
+from rango.forms import UserForm, UserProfileForm
+from django.contrib.auth import authenticate, login
+from django.http import HttpResponseRedirect, HttpResponse
+from django.core.urlresolvers import reverse
 
 def index(request):
 	#return HttpResponse("<br/> <a href='/rango/about/'> Rango says hey there partner! </a>")
@@ -79,3 +85,53 @@ def about(request):
 	#<a href="/rango/">Index</a>
 	context_dict = {'bold': "This tutorial has been put together by Stefanos Sotiriou!"}
 	return render(request, 'rango/about.html', context=context_dict)
+
+def register(request):
+	registered = False
+
+	if request.method == 'POST':
+		user_form = UserForm(data=request.POST)
+		profile_form = UserProfileForm(data=request.POST)
+
+		if user_form.is_valid() and profile_form.is_valid():
+			user = user_form.save()
+			user.set_password(user.password)
+			user.save()
+			profile = profile_form.save(commit=False)
+			profile.user = user
+
+			if 'picture' in request.FILES:
+				profile.picture = request.FILES['picture']
+				profile.save()
+				registered = True
+
+			else:
+				print(user_form.errors, profile_form.errors)
+
+	else:
+		user_form=UserForm()
+		profile_form = UserProfileForm()
+
+	return render(request,
+					'rango/register.html',
+					{'user_form':user_form,
+					'profile_form':profile_form,
+					'registerd': registered})
+
+def user_login(request):
+	if request.method=='POST':
+		username = request.POST.get('username')
+		password = request.POST.get('password')
+		user = authenticate(username=username, password=password)
+
+		if user:
+			if user.is_active:
+				login(request,user)
+				return HttpResponseRedirect(reverse('index'))
+			else:
+				HttpResponse("Your Rango account is disabled.")
+		else:
+			print("Invalid login details: {0}, {1}".format(username, password))
+			return HttpResponse("Invalid login details supplied.")
+	else:
+		return render(request, 'rango/login.html', {})
