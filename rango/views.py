@@ -14,30 +14,40 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 from django.template import RequestContext
 from datetime import datetime
+from django.shortcuts import render_to_response
+
+def encode_url(str):
+    return str.replace(' ', '_')
+
+def decode_url(str):
+    return str.replace('_', ' ')
+
+def get_category_list(max_results=0, starts_with=''):
+    cat_list = []
+    if starts_with:
+        cat_list = Category.objects.filter(name__startswith=starts_with)
+    else:
+        cat_list = Category.objects.all()
+
+    if max_results > 0:
+        if (len(cat_list) > max_results):
+            cat_list = cat_list[:max_results]
+
+    for cat in cat_list:
+        cat.url = encode_url(cat.name)
+
+    return cat_list
 
 def index(request):
 	request.session.set_test_cookie()
-	#return HttpResponse("<br/> <a href='/rango/about/'> Rango says hey there partner! </a>")
-	#return ("<br/> <a href='/rango/about/'>About</a>")
-	# Construct a dictionary to pass to the template engine as its context.
-	# Note the key boldmessage is the same as {{ boldmessage }} in the template!
-	#context_dict = {'boldmessage': "Crunchy, creamy, cookie, candy, cupcake!"}
 	category_list = Category.objects.order_by('-likes')[:5]
-
-	context_dict = {'categories': category_list}
-
 	page_list = Page.objects.order_by('-views')[:5]
-	context_dict['pages'] = page_list
+	context_dict = {'categories': category_list, 'pages': page_list}
 
-	# Return a rendered response to send to the client.
-	# We make use of the shortcut function to make our lives easier.
-	# Note that the first parameter is the template we wish to use.
-	return render(request, 'rango/index.html', context=context_dict)
+	visitor_cookie_handler(request)
+	context_dict['visits'] = request.session['visits']
 
-	response = render(request, 'rango/index.html', context_dict)
-	# Call the helper function to handle the cookies
-	visitor_cookie_handler(request, response)
-	# Return response back to the user, updating any cookies that need changed.
+	response = render(request, 'rango/index.html', context=context_dict)
 	return response
 
 def show_category(request, category_name_slug):
@@ -167,22 +177,66 @@ def user_logout(request):
 	# Take the user back to the homepage.
 	return HttpResponseRedirect(reverse('index'))
 
-def visitor_cookie_handler(request, response):
-	# Get the number of visits to the site.
-	# We use the COOKIES.get() function to obtain the visits cookie.
-	# If the cookie exists, the value returned is casted to an integer.
-	# If the cookie doesn't exist, then the default value of 1 is used.
-	visits = int(request.COOKIES.get('visits', '1'))
-	last_visit_cookie = request.COOKIES.get('last_visit', str(datetime.now()))
+# A helper method
+def get_server_side_cookie(request, cookie, default_val=None):
+	val = request.session.get(cookie)
+	if not val:
+		val = default_val
+	return val
+
+# Updated the function definition
+def visitor_cookie_handler(request):
+	visits = int(get_server_side_cookie(request, 'visits', '1'))
+	last_visit_cookie = get_server_side_cookie(request,
+			'last_visit',
+			str(datetime.now()))
 	last_visit_time = datetime.strptime(last_visit_cookie[:-7],
-				'%Y-%m-%d %H:%M:%S')
+			'%Y-%m-%d %H:%M:%S')
 	# If it's been more than a day since the last visit...
 	if (datetime.now() - last_visit_time).days > 0:
 		visits = visits + 1
-		# Update the last visit cookie now that we have updated the count
-		response.set_cookie('last_visit', str(datetime.now()))
+		#update the last visit cookie now that we have updated the count
+		request.session['last_visit'] = str(datetime.now())
+
 	else:
-		# Set the last visit cookie
-		response.set_cookie('last_visit', last_visit_cookie)
+		# set the last visit cookie
+		request.session['last_visit'] = last_visit_cookie
+
 		# Update/set the visits cookie
-	response.set_cookie('visits', visits)
+	request.session['visits'] = visits
+
+@login_required
+def profile(request):
+    context = RequestContext(request)
+    cat_list = get_category_list()
+    context_dict = {'cat_list': cat_list}
+    u = User.objects.get(username=request.user)
+
+    try:
+        up = UserProfile.objects.get(user=u)
+    except:
+        up = None
+
+    context_dict['user'] = u
+    context_dict['userprofile'] = up
+    return render_to_response('rango/profile.html', context_dict, context)
+
+# def visitor_cookie_handler(request, response):
+# 	# Get the number of visits to the site.
+# 	# We use the COOKIES.get() function to obtain the visits cookie.
+# 	# If the cookie exists, the value returned is casted to an integer.
+# 	# If the cookie doesn't exist, then the default value of 1 is used.
+# 	visits = int(request.COOKIES.get('visits', '1'))
+# 	last_visit_cookie = request.COOKIES.get('last_visit', str(datetime.now()))
+# 	last_visit_time = datetime.strptime(last_visit_cookie[:-7],
+# 				'%Y-%m-%d %H:%M:%S')
+# 	# If it's been more than a day since the last visit...
+# 	if (datetime.now() - last_visit_time).days > 0:
+# 		visits = visits + 1
+# 		# Update the last visit cookie now that we have updated the count
+# 		response.set_cookie('last_visit', str(datetime.now()))
+# 	else:
+# 		# Set the last visit cookie
+# 		response.set_cookie('last_visit', last_visit_cookie)
+# 		# Update/set the visits cookie
+# 	response.set_cookie('visits', visits)
