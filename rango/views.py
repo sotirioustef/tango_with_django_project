@@ -16,11 +16,7 @@ from django.template import RequestContext
 from datetime import datetime
 from django.shortcuts import render_to_response
 
-def encode_url(str):
-    return str.replace(' ', '_')
 
-def decode_url(str):
-    return str.replace('_', ' ')
 
 def get_category_list(max_results=0, starts_with=''):
     cat_list = []
@@ -64,6 +60,7 @@ def show_category(request, category_name_slug):
 
 	return render(request, 'rango/category.html', context_dict)
 
+@login_required
 def add_category(request):
 	form = CategoryForm()
 
@@ -78,6 +75,7 @@ def add_category(request):
 
 	return render(request, 'rango/add_category.html',{'form':form})
 
+@login_required
 def add_page(request, category_name_slug):
 	try:
 		category = Category.objects.get(slug=category_name_slug)
@@ -160,6 +158,7 @@ def user_login(request):
 	else:
 		return render(request, 'rango/login.html', {})
 
+@login_required
 def restricted(request):
 	# return HttpResponse("Since you're logged in, you can see this text!")
 	# context = RequestContext(request)
@@ -205,21 +204,8 @@ def visitor_cookie_handler(request):
 		# Update/set the visits cookie
 	request.session['visits'] = visits
 
-@login_required
-def profile(request):
-    context = RequestContext(request)
-    cat_list = get_category_list()
-    context_dict = {'cat_list': cat_list}
-    u = User.objects.get(username=request.user)
 
-    try:
-        up = UserProfile.objects.get(user=u)
-    except:
-        up = None
 
-    context_dict['user'] = u
-    context_dict['userprofile'] = up
-    return render_to_response('rango/profile.html', context_dict, context)
 
 # def visitor_cookie_handler(request, response):
 # 	# Get the number of visits to the site.

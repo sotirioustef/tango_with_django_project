@@ -30,7 +30,7 @@ class Page(models.Model):
 
     def __str__(self): # For Python 2, use __unicode__ too
         return self.title
-        #return max(self.views)#comment out
+
 
 class UserProfile(models.Model):
     # This line is required. Links UserProfile to a User model instance.

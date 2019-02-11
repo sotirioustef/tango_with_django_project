@@ -1,5 +1,5 @@
 from django import forms
-from rango.models import Page, Category, UserProfile
+from rango.models import Category, Page, UserProfile
 from django.contrib.auth.models import User
 
 class CategoryForm(forms.ModelForm):
@@ -37,7 +37,7 @@ class PageForm(forms.ModelForm):
 class UserForm(forms.ModelForm):
     # username = forms.CharField(help_text="Please enter a username.")
     # email = forms.CharField(help_text="Please enter your email.")
-    password = forms.CharField(widget=forms.PasswordInput(), help_text="Please enter a password.")
+    password = forms.CharField(widget=forms.PasswordInput())
 
     class Meta:
         model = User
